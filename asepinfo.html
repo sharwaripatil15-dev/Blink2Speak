@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blink2Speak</title>
+
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --bg-soft: #ffffff;
+      --sidebar-bg: #f9fafb;
+      --accent: #8ccf23;
+      --accent-dark: #64a411;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --border-subtle: #e5e7eb;
+      --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.08);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --radius-full: 999px;
+      --transition-fast: 0.25s ease;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+
+    body.dark {
+      --bg: #020617;
+      --bg-soft: #020617;
+      --sidebar-bg: #030712;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --border-subtle: #111827;
+      --shadow-soft: 0 22px 50px rgba(0, 0, 0, 0.65);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      width: 100%;
+      min-height: 100vh;
+      transition: grid-template-columns 0.25s ease;
+    }
+
+    /* collapsed sidebar state */
+    .shell.menu-hidden {
+      grid-template-columns: 0 minmax(0, 1fr);
+    }
+
+    .shell.menu-hidden aside {
+      transform: translateX(-260px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Sidebar */
+    aside {
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-subtle);
+      padding: 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #a3e635, #4ade80);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #022c22;
+      box-shadow: 0 12px 26px rgba(132, 204, 22, 0.6);
+    }
+
+    .brand-text-main {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .brand-text-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .nav-link-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #e5f6bf;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #47630b;
+      font-size: 13px;
+    }
+
+    .nav-link span:last-child {
+      flex: 1;
+    }
+
+    .nav-link:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--text-main);
+    }
+
+    .nav-link.active {
+      background: #8ccf23;
+      color: #f9fafb;
+      font-weight: 600;
+    }
+
+    .nav-link.active .nav-link-icon {
+      background: #f9fafb;
+      color: #8ccf23;
+    }
+
+    body.dark .nav-link.active {
+      background: #8ccf23;
+      color: #022c22;
+    }
+
+    /* Main / top bar */
+    main {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-soft);
+    }
+
+    .topbar {
+      height: 68px;
+      padding: 0 34px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    /* menu toggle button */
+    .menu-toggle {
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      background: var(--sidebar-bg);
+      color: var(--text-main);
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .menu-toggle:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+    }
+
+    .clock {
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      background: rgba(248, 250, 252, 0.9);
+    }
+
+    body.dark .clock {
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    .theme-toggle {
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      background: transparent;
+      transition:
+        transform var(--transition-fast),
+        background var(--transition-fast);
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+    }
+
+    .content {
+      padding: 26px 42px 34px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* Guide boxes */
+    .guide-header h1 {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+
+    .guide-header p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .box {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 16px 18px 14px;
+      margin-top: 6px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid var(--border-subtle);
+      font-size: 14px;
+      line-height: 1.5;
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease,
+        background-color 0.2s ease;
+    }
+
+    body.dark .box {
+      background: #020617;
+      border-color: #111827;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+    }
+
+    .box:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+      border-color: rgba(132, 204, 22, 0.7);
+      background-color: #ffffff;
+    }
+
+    body.dark .box:hover {
+      box-shadow: 0 26px 60px rgba(0, 0, 0, 0.9);
+      border-color: rgba(190, 242, 100, 0.9);
+      background-color: #020617;
+    }
+
+    .box h2 {
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .box p {
+      color: var(--text-muted);
+    }
+
+    .list-box {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 6px;
+      color: var(--text-muted);
+    }
+
+    .list-box li {
+      margin-bottom: 4px;
+    }
+
+    @media (max-width: 960px) {
+      .shell {
+        grid-template-columns: 70px minmax(0, 1fr);
+      }
+      .brand-text {
+        display: none;
+      }
+      .nav-link span:last-child {
+        display: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      aside {
+        display: none;
+      }
+      .content {
+        padding: 22px 18px 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Sidebar -->
+
+     <aside>
+      <div class="brand">
+        <div class="brand-logo">E</div>
+        <div class="brand-text">
+          <span class="brand-text-main">Blink2Speak</span>
+          <span class="brand-text-sub">EyeVoice</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="index.html" class="nav-link">
+          <div class="nav-link-icon">🏠</div>
+          <span>Home</span>
+        </a>
+        <a href="asepcaminput.html" class="nav-link">
+          <div class="nav-link-icon">👁️</div>
+          <span>Blink-2-Speak</span>
+        </a>
+         </a>
+         <a href="pressconvert.html" class="nav-link">
+          <div class="nav-link-icon">⏱️</div>
+          <span>Tab-2-Speak</span>
+        </a>
+
+        <a href="asephistory.html" class="nav-link">
+          <div class="nav-link-icon">⏱️</div>
+          <span>History</span>
+        </a>
+        <a href="asepsavedmsg.html" class="nav-link">
+          <div class="nav-link-icon">💾</div>
+          <span>Saved Messages</span></a>
+        <a href="learnmorsecode.html" class="nav-link">
+          <div class="nav-link-icon">📘</div>
+          <span>Morse Code</span>
+        </a>
+         <a class="nav-link active">
+          <div class="nav-link-icon">📘</div>
+          <span>User Guide</span>
+        </a>
+         <a href="asepsettingin.html" class="nav-link">
+          <div class="nav-link-icon">⚙️</div>
+          <span>Settings</span>
+       
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main -->
+    <main>
+      <!-- Top bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">☰</button>
+          <div class="topbar-title">User Guide</div>
+        </div>
+        <div class="topbar-right">
+          <div id="clock" class="clock">--:--:--</div>
+          <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+            <span id="themeIcon">🌙</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page content -->
+      <section class="content">
+        <div class="guide-header">
+          <h1>Blink2Speak – User Guide</h1>
+          <p>Learn how to communicate using eye blinks and Morse-style patterns.</p>
+        </div>
+
+        <!-- What is Blink2Speak -->
+        <div class="box">
+          <h2>🔹 What is Blink2Speak?</h2>
+          <p>
+            Blink2Speak is an assistive communication system for people who
+            cannot speak or move freely. It detects eye blinks and converts
+            Morse-style patterns into text and spoken messages.
+          </p>
+          <p>
+            The goal is to let you express basic needs, feelings, and sentences
+            with just your eyes, so you can interact with caregivers, family,
+            and medical staff more comfortably.
+          </p>
+        </div>
+
+        <!-- How to use -->
+        <div class="box">
+          <h2>🟦 How to Use the App</h2>
+          <ul class="list-box">
+            <li>1. Open the Live Camera or Communicate page.</li>
+            <li>2. Position your face clearly in front of the camera.</li>
+            <li>3. Blink naturally to send short signals (•) and long blinks (—).</li>
+            <li>4. The system automatically detects and converts your blink pattern into characters.</li>
+            <li>5. Completed letters form words, which appear in the output box.</li>
+            <li>6. Use quick phrases (Yes, No, Help, I need water, etc.) for faster responses.</li>
+            <li>7. Activate speech output if you want the app to read your message aloud.</li>
+          </ul>
+        </div>
+
+        <!-- Blink meaning -->
+        <div class="box">
+          <h2>🟦 Blink Meaning (Morse Style)</h2>
+          <ul class="list-box">
+            <li>• Short Blink = Dot (•)</li>
+            <li>— Long Blink = Dash (—)</li>
+            <li>Short pause = End of a letter</li>
+            <li>Longer pause = Space between words</li>
+            <li>Very long pause = End of sentence</li>
+          </ul>
+          <p>
+            You do not need to memorize the entire Morse code table on day one.
+            Start with a few letters such as <strong>E</strong> (•) and
+            <strong>T</strong> (—), then gradually learn more combinations like
+            “YES” and “NO”.
+          </p>
+        </div>
+
+        <!-- Practice section -->
+        <div class="box">
+          <h2>🟩 Practice Mode (Recommended)</h2>
+          <p>
+            Before using Blink2Speak for real conversations, spend a few minutes
+            practicing. This helps the system calibrate to your blink speed and
+            reduces errors.
+          </p>
+          <ul class="list-box">
+            <li>• Practice making clear short blinks and long blinks.</li>
+            <li>• Try spelling simple words such as “HI”, “YES”, or “NO”.</li>
+            <li>• Ask a caregiver to check if the decoded text matches your intention.</li>
+            <li>• Adjust sensitivity and minimum blink duration in the Settings page if needed.</li>
+          </ul>
+        </div>
+
+        <!-- Tips for detection -->
+        <div class="box">
+          <h2>🟦 Tips for Best Detection</h2>
+          <ul class="list-box">
+            <li>• Ensure good lighting so your eyes are clearly visible.</li>
+            <li>• Sit directly facing the camera at eye level.</li>
+            <li>• Keep the camera steady and avoid shaking the device.</li>
+            <li>• Avoid extremely slow or half‑closed blinks, which can confuse detection.</li>
+            <li>• If you wear glasses, clean the lenses to reduce reflections.</li>
+          </ul>
+          <p>
+            If the app stops recognizing blinks correctly, pause for a moment,
+            correct your position, and resume detection from the main camera
+            screen.
+          </p>
+        </div>
+
+        <!-- Safety & comfort -->
+        <div class="box">
+          <h2>🟧 Comfort & Safety Notes</h2>
+          <ul class="list-box">
+            <li>• Take regular breaks to avoid eye strain.</li>
+            <li>• Stop using the app if your eyes feel dry, painful, or irritated.</li>
+            <li>• Use artificial tears if recommended by your doctor for long sessions.</li>
+            <li>• Ask caregivers to adjust the screen distance so you can see comfortably.</li>
+          </ul>
+          <p>
+            Blink2Speak is a support tool and does not replace medical advice.
+            Always consult healthcare professionals for any changes in your
+            condition.
+          </p>
+        </div>
+
+        <!-- Using quick phrases & history -->
+        <div class="box">
+          <h2>🟦 Quick Phrases, History & Saved Messages</h2>
+          <ul class="list-box">
+            <li>• Use quick phrase buttons to say common messages in one tap.</li>
+            <li>• Open the History page to review what you communicated earlier.</li>
+            <li>• Save important messages (for example, “I am in pain”) for instant reuse.</li>
+            <li>• Caregivers can pre‑save helpful phrases in your own language.</li>
+          </ul>
+        </div>
+
+        <!-- Settings recap -->
+        <div class="box">
+          <h2>🛠️ Recommended Settings Overview</h2>
+          <p>
+            If Blink2Speak feels too sensitive or not sensitive enough, adjust
+            these options in the Settings page:
+          </p>
+          <ul class="list-box">
+            <li>• <strong>Blink detection</strong> – turn on/off real‑time eye tracking.</li>
+            <li>• <strong>Sensitivity</strong> – higher values detect smaller or faster blinks.</li>
+            <li>• <strong>Minimum blink duration</strong> – controls how the app separates dots and dashes.</li>
+            <li>• <strong>Sound on blink</strong> – play a soft click whenever a blink is detected.</li>
+            <li>• <strong>Voice volume & style</strong> – change how the spoken output sounds.</li>
+          </ul>
+        </div>
+
+        <!-- Final encouragement -->
+        <div class="box">
+          <h2>💚 Getting the Most From Blink2Speak</h2>
+          <p>
+            Learning a new communication method takes time. Start slow, use
+            practice mode, and rely on quick phrases while you become more
+            confident with Morse patterns.
+          </p>
+          <p>
+            Share this guide with your family and caregivers so everyone
+            understands how Blink2Speak works and can support you in daily
+            communication.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Sidebar menu toggle (same pattern as other pages in your project and common dashboard layouts [web:1])
+    const shell = document.querySelector(".shell");
+    const menuToggle = document.getElementById("menuToggle");
+
+    menuToggle.addEventListener("click", () => {
+      shell.classList.toggle("menu-hidden");
+    });
+
+    // Live clock
+    function updateClock() {
+      const clockEl = document.getElementById("clock");
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
+      clockEl.textContent = timeStr.toLowerCase();
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Theme toggle shared via localStorage (standard dark-mode approach storing user choice in local storage [web:2])
+    const bodyEl = document.body;
+    const toggleBtn = document.getElementById("themeToggle");
+    const iconSpan = document.getElementById("themeIcon");
+
+    function applyTheme(theme) {
+      if (theme === "dark") {
+        bodyEl.classList.add("dark");
+        iconSpan.textContent = "☀️";
+      } else {
+        bodyEl.classList.remove("dark");
+        iconSpan.textContent = "🌙";
+      }
+    }
+
+    const savedTheme = localStorage.getItem("eyev_theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
+    applyTheme(initialTheme);
+
+    toggleBtn.addEventListener("click", () => {
+      const newTheme = bodyEl.classList.contains("dark") ? "light" : "dark";
+      localStorage.setItem("eyev_theme", newTheme);
+      applyTheme(newTheme);
+    });
+  </script>
+</body>
+</html>

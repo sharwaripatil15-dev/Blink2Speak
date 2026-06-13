@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>EyeVoice – Speak with Your Eyes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --bg-soft: #ffffff;
+      --sidebar-bg: #f9fafb;
+      --accent: #8ccf23;
+      --accent-dark: #64a411;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --border-subtle: #e5e7eb;
+      --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.08);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --radius-full: 999px;
+      --transition-fast: 0.25s ease;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+
+    body.dark {
+      --bg: #020617;
+      --bg-soft: #020617;
+      --sidebar-bg: #030712;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --border-subtle: #111827;
+      --shadow-soft: 0 22px 50px rgba(0, 0, 0, 0.65);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* Layout */
+    .shell {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      width: 100%;
+      min-height: 100vh;
+      transition: grid-template-columns 0.25s ease;
+    }
+
+    /* collapsed state */
+    .shell.menu-hidden {
+      grid-template-columns: 0 minmax(0, 1fr);
+    }
+    .shell.menu-hidden aside {
+      transform: translateX(-260px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    aside {
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-subtle);
+      padding: 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-soft);
+    }
+
+    /* Sidebar brand */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #a3e635, #4ade80);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #022c22;
+      box-shadow: 0 12px 26px rgba(132, 204, 22, 0.6);
+    }
+
+    .brand-text-main {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .brand-text-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Sidebar nav */
+    .nav {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .nav-link-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #e5f6bf;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #47630b;
+      font-size: 13px;
+    }
+
+    .nav-link span:last-child {
+      flex: 1;
+    }
+
+    .nav-link:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--text-main);
+    }
+
+    .nav-link.active {
+      background: #8ccf23;
+      color: #f9fafb;
+      font-weight: 600;
+    }
+
+    .nav-link.active .nav-link-icon {
+      background: #f9fafb;
+      color: #8ccf23;
+    }
+
+    body.dark .nav-link.active {
+      background: #8ccf23;
+      color: #022c22;
+    }
+
+    /* Top bar */
+    .topbar {
+      height: 68px;
+      padding: 0 34px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .menu-toggle {
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      background: var(--sidebar-bg);
+      color: var(--text-main);
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .menu-toggle:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+    }
+
+    .clock {
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      background: rgba(248, 250, 252, 0.9);
+    }
+
+    body.dark .clock {
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    .theme-toggle {
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      background: transparent;
+      transition:
+        transform var(--transition-fast),
+        background var(--transition-fast);
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+    }
+
+    /* Hero */
+    .content {
+      padding: 26px 42px 34px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #f9fafb, #eef2ff);
+      border-radius: 30px;
+      padding: 24px 34px 26px;
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body.dark .hero {
+      background: radial-gradient(circle at top left, #020617, #020617 40%, #030712 100%);
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(190, 242, 100, 0.15);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      color: #4d7c0f;
+    }
+
+    body.dark .hero-pill {
+      background: rgba(132, 204, 22, 0.12);
+      color: #bbf7d0;
+    }
+
+    .hero-pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #8ccf23;
+    }
+
+    .hero-heading {
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-heading span {
+      color: #8ccf23;
+    }
+
+    body.dark .hero-heading span {
+      color: #bef264;
+    }
+
+    .hero-text {
+      margin-top: 10px;
+      max-width: 620px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 16px;
+      margin-bottom: 6px;
+    }
+
+    .btn-primary {
+      border-radius: var(--radius-full);
+      border: none;
+      padding: 12px 26px;
+      font-size: 14px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #a3e635, #65a30d);
+      color: #022c22;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 18px 38px rgba(132, 204, 22, 0.65);
+      transition:
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast),
+        filter var(--transition-fast);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+      box-shadow: 0 24px 45px rgba(132, 204, 22, 0.8);
+    }
+
+    .btn-ghost {
+      border-radius: var(--radius-full);
+      padding: 12px 22px;
+      border: 1px solid var(--border-subtle);
+      font-size: 14px;
+      color: var(--text-main);
+      background: rgba(248, 250, 252, 0.85);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast);
+    }
+
+    body.dark .btn-ghost {
+      background: rgba(15, 23, 42, 0.92);
+    }
+
+    .btn-ghost:hover {
+      transform: translateY(-1px);
+      background: #ffffff;
+      box-shadow: 0 14px 30px rgba(148, 163, 184, 0.35);
+    }
+
+    body.dark .btn-ghost:hover {
+      background: rgba(15, 23, 42, 1);
+    }
+
+    .hero-media {
+      margin-top: 6px;
+      border-radius: 26px;
+      overflow: hidden;
+      height: 260px;
+      position: relative;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.02);
+    }
+
+    .hero-media::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 70px;
+      background: linear-gradient(to top, rgba(248, 250, 252, 0.98), transparent);
+    }
+
+    body.dark .hero-media::after {
+      background: linear-gradient(to top, rgba(3, 7, 18, 0.98), transparent);
+    }
+
+    /* How it works & story (unchanged from your code) */
+    .how-wrapper {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+    .how-header h2 { font-size: 22px; margin-bottom: 4px; }
+    .how-header p { font-size: 13px; color: var(--text-muted); }
+    .how-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .how-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 18px 18px 16px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+    }
+    body.dark .how-card {
+      background: #020617;
+      border-color: #111827;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+    }
+    .how-card h3 { font-size: 15px; }
+    .how-card p { color: var(--text-muted); }
+    .how-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(190, 242, 100, 0.18);
+      color: #4d7c0f;
+      font-size: 18px;
+    }
+    body.dark .how-icon {
+      background: rgba(132, 204, 22, 0.16);
+      color: #bef264;
+    }
+    .morse-card {
+      margin-top: 4px;
+      padding: 18px 18px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border-subtle);
+      background: #ffffff;
+      box-shadow: 0 16px 38px rgba(15, 23, 42, 0.04);
+    }
+    body.dark .morse-card {
+      background: #020617;
+      border-color: #111827;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.7);
+    }
+    .morse-header h3 { font-size: 16px; margin-bottom: 14px; }
+    .morse-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .morse-item {
+      border-radius: 16px;
+      padding: 14px 14px 12px;
+      background: #f9fafb;
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    body.dark .morse-item {
+      background: #020617;
+      border-color: #111827;
+    }
+    .morse-letter { font-size: 18px; font-weight: 600; color: #7fcf23; }
+    .morse-code { font-size: 13px; letter-spacing: 0.14em; }
+    .morse-label { font-size: 11px; color: var(--text-muted); }
+
+    .cta-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .cta-card {
+      border-radius: 18px;
+      padding: 16px 18px;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.03);
+    }
+    body.dark .cta-card {
+      background: #020617;
+      border-color: #111827;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
+    }
+    .cta-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(190, 242, 100, 0.18);
+      color: #4d7c0f;
+      font-size: 18px;
+    }
+    body.dark .cta-icon {
+      background: rgba(132, 204, 22, 0.18);
+      color: #bef264;
+    }
+    .cta-title { font-size: 14px; font-weight: 600; }
+    .cta-sub { font-size: 12px; color: var(--text-muted); }
+
+    .story-card {
+      margin-top: 10px;
+      border-radius: 20px;
+      padding: 18px 18px 16px;
+      background: #f5fdf0;
+      border: 1px solid #9df3f9;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    body.dark .story-card {
+      background: rgba(15, 23, 42, 0.95);
+      border-color: #0f701c;
+    }
+    .story-card h3 { font-size: 16px; margin-bottom: 4px; }
+    .story-highlight {
+      color: #0f7c0f;
+      font-weight: 600;
+    }
+    body.dark .story-highlight {
+      color: #35e635;
+    }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      .shell {
+        grid-template-columns: 70px minmax(0, 1fr);
+      }
+      .brand-text { display: none; }
+      .nav-link span:last-child { display: none; }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      aside {
+        display: none;
+      }
+      .content {
+        padding: 22px 18px 30px;
+      }
+      .hero {
+        padding: 20px 18px 22px;
+      }
+      .hero-heading {
+        font-size: 30px;
+      }
+      .hero-media {
+        height: 220px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Sidebar -->
+    <aside>
+      <div class="brand">
+        <div class="brand-logo">E</div>
+        <div class="brand-text">
+          <span class="brand-text-main">Blink2Speak</span>
+          <span class="brand-text-sub">EyeVoice</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav-link active">
+          <div class="nav-link-icon">🏠</div>
+          <span>Home</span>
+        </a>
+        <a href="asepcaminput.html" class="nav-link">
+          <div class="nav-link-icon">👁️</div>
+          <span>Blink-2-Speak</span>
+        </a>
+         </a>
+         <a href="pressconvert.html" class="nav-link">
+          <div class="nav-link-icon">⏱️</div>
+          <span>Tab-2-Speak</span>
+        </a>
+
+        
+        <a href="asephistory.html" class="nav-link">
+          <div class="nav-link-icon">⏱️</div>
+          <span>History</span>
+        </a>
+        <a href="asepsavedmsg.html" class="nav-link">
+          <div class="nav-link-icon">💾</div>
+          <span>Saved Messages</span></a>
+        <a href="learnmorsecode.html" class="nav-link">
+          <div class="nav-link-icon">📘</div>
+          <span>Morse Code</span>
+        </a>
+        <a href="asepinfo.html" class="nav-link">
+          <div class="nav-link-icon">📘</div>
+          <span>User Guide</span>
+        </a>
+         <a href="asepsettingin.html" class="nav-link">
+          <div class="nav-link-icon">⚙️</div>
+          <span>Settings</span>
+       
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main>
+      <!-- Top bar with menu toggle -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">☰</button>
+          <div class="topbar-title">Home</div>
+        </div>
+        <div class="topbar-right">
+          <div id="clock" class="clock">--:--:--</div>
+          <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+            <span id="themeIcon">🌙</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page content -->
+      <section class="content">
+        <div class="hero">
+          <div class="hero-pill">
+            <span class="hero-pill-dot"></span>
+            <span>Communication Made Accessible</span>
+          </div>
+
+          <div>
+            <h1 class="hero-heading">
+              Speak with Your <span>Eyes</span>
+            </h1>
+            <p class="hero-text">
+              EyeVoice transforms eye blinks into speech using Morse code. Designed for MND patients and anyone with limited mobility, communicate freely using just your eyes.
+            </p>
+          </div>
+
+          <div class="hero-actions">
+            <a href="asepcaminput.html">
+              <button class="btn-primary">
+                <span>Start Communicating</span>
+                <span>➜</span>
+              </button>
+            </a>
+            <a href="asepsettingin.html">
+              <button class="btn-ghost">
+                <span>⚙️</span>
+                <span>Configure Settings</span>
+              </button>
+            </a>
+          </div>
+
+          <div class="hero-media">
+            <img
+              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR32K7zxXfg7MtugMVkqZiYBoA1TyAfhLxWdQ&s"
+              alt="Eye close-up"
+            />
+          </div>
+        </div>
+
+        <!-- How it works, Morse guide, CTA, Story (unchanged) -->
+        <section class="how-wrapper">
+          <div class="how-header">
+            <h2>How It Works</h2>
+            <p>Simple, intuitive, and accessible communication.</p>
+          </div>
+
+          <div class="how-grid">
+            <article class="how-card">
+              <div class="how-icon eye">👁️</div>
+              <h3>Blink Detection</h3>
+              <p>
+                Our AI-powered system detects your eye blinks through your webcam in real time.
+              </p>
+            </article>
+
+            <article class="how-card">
+              <div class="how-icon cam">📷</div>
+              <h3>Morse Code Input</h3>
+              <p>
+                Short blink = dot, long blink = dash. Input letters and words using Morse code.
+              </p>
+            </article>
+
+            <article class="how-card">
+              <div class="how-icon sound">🔊</div>
+              <h3>Text to Speech</h3>
+              <p>
+                Your message is converted to speech instantly, allowing natural communication.
+              </p>
+            </article>
+          </div>
+
+          <div class="morse-card">
+            <div class="morse-header">
+              <h3>Quick Morse Code Guide</h3>
+            </div>
+            <div class="morse-grid">
+              <div class="morse-item">
+                <div class="morse-letter">E</div>
+                <div class="morse-code">.</div>
+                <div class="morse-label">Short blink</div>
+              </div>
+              <div class="morse-item">
+                <div class="morse-letter">T</div>
+                <div class="morse-code">-</div>
+                <div class="morse-label">Long blink</div>
+              </div>
+              <div class="morse-item">
+                <div class="morse-letter">YES</div>
+                <div class="morse-code">-.-- . …</div>
+                <div class="morse-label">Dash dot dot / dot dot / dot</div>
+              </div>
+              <div class="morse-item">
+                <div class="morse-letter">NO</div>
+                <div class="morse-code">-. ---</div>
+                <div class="morse-label">Dash dot / dash dash dash</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <div class="cta-card">
+              <div class="cta-icon cam">📷</div>
+              <div>
+                <div class="cta-title">Start Communicating</div>
+                <div class="cta-sub">Use webcam to blink and speak.</div>
+              </div>
+            </div>
+
+            <div class="cta-card">
+              <div class="cta-icon msg">💬</div>
+              <div>
+                <div class="cta-title">View Messages</div>
+                <div class="cta-sub">See your saved communications.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="story-card">
+            <h3>Our Story</h3>
+            <p>
+              EyeVoice was created with a simple mission: to give a voice to those who have lost the ability to speak.
+            </p>
+            <p>
+              Using cutting-edge eye-tracking technology and the time-tested Morse code system, EyeVoice bridges the gap between thought and expression.
+            </p>
+            <p class="story-highlight">
+              Because everyone deserves to be heard.
+            </p>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Sidebar menu toggle (same behaviour as other pages)
+    const shell = document.querySelector(".shell");
+    const menuToggle = document.getElementById("menuToggle");
+
+    menuToggle.addEventListener("click", () => {
+      shell.classList.toggle("menu-hidden");
+    });
+
+    // Live clock
+    function updateClock() {
+      const clockEl = document.getElementById("clock");
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
+      clockEl.textContent = timeStr.toLowerCase();
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Theme toggle with localStorage (pattern commonly used for dark mode sites) [web:59]
+    const bodyEl = document.body;
+    const toggleBtn = document.getElementById("themeToggle");
+    const iconSpan = document.getElementById("themeIcon");
+
+    function applyTheme(theme) {
+if (theme === "dark") {
+        bodyEl.classList.add("dark");
+        iconSpan.textContent = "☀️";
+} else {
+        bodyEl.classList.remove("dark");
+        iconSpan.textContent = "🌙";
+}
+    }
+
+    const savedTheme = localStorage.getItem("eyev_theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
+    applyTheme(initialTheme);
+
+    toggleBtn.addEventListener("click", () => {
+    const newTheme = bodyEl.classList.contains("dark") ? "light" : "dark";
+    localStorage.setItem("eyev_theme", newTheme);
+    applyTheme(newTheme);
+    });
+</script>
+</body>
+</html>

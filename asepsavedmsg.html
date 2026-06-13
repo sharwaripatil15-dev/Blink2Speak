@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saved Messages – Blink2Speak</title>
+
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --bg-soft: #ffffff;
+      --sidebar-bg: #f9fafb;
+      --accent: #8ccf23;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --border-subtle: #e5e7eb;
+      --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.08);
+      --radius-lg: 22px;
+      --radius-full: 999px;
+      --transition-fast: 0.25s ease;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+
+    body.dark {
+      --bg: #020617;
+      --bg-soft: #020617;
+      --sidebar-bg: #030712;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --border-subtle: #111827;
+      --shadow-soft: 0 22px 50px rgba(0, 0, 0, 0.65);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      width: 100%;
+      min-height: 100vh;
+      transition: grid-template-columns 0.25s ease;
+    }
+
+    /* collapsed state */
+    .shell.menu-hidden {
+      grid-template-columns: 0 minmax(0, 1fr);
+    }
+    .shell.menu-hidden aside {
+      transform: translateX(-260px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Sidebar */
+    aside {
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-subtle);
+      padding: 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #a3e635, #4ade80);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #022c22;
+      box-shadow: 0 12px 26px rgba(132, 204, 22, 0.6);
+    }
+
+    .brand-text-main {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .brand-text-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .nav-link-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #e5f6bf;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #47630b;
+      font-size: 13px;
+    }
+
+    .nav-link span:last-child {
+      flex: 1;
+    }
+
+    .nav-link:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--text-main);
+    }
+
+    .nav-link.active {
+      background: #8ccf23;
+      color: #f9fafb;
+      font-weight: 600;
+    }
+
+    .nav-link.active .nav-link-icon {
+      background: #f9fafb;
+      color: #8ccf23;
+    }
+
+    body.dark .nav-link.active {
+      background: #8ccf23;
+      color: #022c22;
+    }
+
+    /* Main + top bar */
+    main {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-soft);
+    }
+
+    .topbar {
+      height: 68px;
+      padding: 0 34px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    /* menu toggle button */
+    .menu-toggle {
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      background: var(--sidebar-bg);
+      color: var(--text-main);
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .menu-toggle:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+    }
+
+    .clock {
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      background: rgba(248, 250, 252, 0.9);
+    }
+
+    body.dark .clock {
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    .theme-toggle {
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      background: transparent;
+      transition:
+        transform var(--transition-fast),
+        background var(--transition-fast);
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+    }
+
+    /* Content */
+    .content {
+      padding: 26px 42px 34px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    h1.page-title {
+      text-align: center;
+      margin-bottom: 4px;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+    }
+
+    h1.page-title::after {
+      content: "";
+      display: block;
+      width: 80px;
+      height: 3px;
+      margin: 10px auto 0;
+      background: linear-gradient(to right, #8ccf23, #4ade80);
+      border-radius: 999px;
+    }
+
+    .category-title {
+      margin-top: 26px;
+      margin-bottom: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #2563eb;
+      padding-left: 10px;
+      border-left: 5px solid #ffd5c2;
+    }
+
+    .category-title::after {
+      content: "";
+      display: block;
+      height: 2px;
+      margin-top: 4px;
+      background: linear-gradient(to right, #bfdbfe, transparent);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .msg-card {
+      background: #ffffff;
+      padding: 18px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+      cursor: pointer;
+      border: 1.5px solid #ffd5c2;
+      transition: 0.2s ease;
+      font-size: 18px;
+      color: #020617;
+    }
+
+    .msg-card:hover {
+      background: #fff7f3;
+      transform: translateY(-3px);
+      border-color: #ffbfa6;
+    }
+
+    body.dark .msg-card {
+      background: #020617;
+      color: #f9fafb;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.7);
+      border-color: #1d7f1f;
+    }
+
+    body.dark .msg-card:hover {
+      background: #111827;
+      border-color: #40f916;
+    }
+
+    @media (max-width: 960px) {
+      .shell {
+        grid-template-columns: 70px minmax(0, 1fr);
+      }
+      .brand-text {
+        display: none;
+      }
+      .nav-link span:last-child {
+        display: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      aside {
+        display: none;
+      }
+      .content {
+        padding: 22px 18px 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Sidebar -->
+ 
+
+      <aside>
+      <div class="brand">
+        <div class="brand-logo">E</div>
+        <div class="brand-text">
+          <span class="brand-text-main">Blink2Speak</span>
+          <span class="brand-text-sub">EyeVoice</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="index.html" class="nav-link">
+          <div class="nav-link-icon">🏠</div>
+          <span>Home</span>
+        </a>
+        <a href="asepcaminput.html" class="nav-link">
+          <div class="nav-link-icon">👁️</div>
+          <span>Blink-2-Speak</span>
+        </a>
+         
+         <a href="pressconvert.html" class="nav-link">
+          <div class="nav-link-icon">⏱️</div>
+          <span>Tab-2-Speak</span>
+        </a>
+
+        
+        <a href="asephistory.html" class="nav-link">
+          <div class="nav-link-icon">⏱️</div>
+          <span>History</span>
+        </a>
+       <a class="nav-link active">
+          <div class="nav-link-icon">💾</div>
+          <span>Saved Messages</span></a>
+        <a href="learnmorsecode.html" class="nav-link">
+          <div class="nav-link-icon">📘</div>
+          <span>Morse Code</span>
+        </a>
+        <a href="asepinfo.html" class="nav-link">
+          <div class="nav-link-icon">📘</div>
+          <span>User Guide</span>
+        </a>
+         <a href="asepsettingin.html" class="nav-link">
+          <div class="nav-link-icon">⚙️</div>
+          <span>Settings</span>
+        </a>
+    
+      </nav>
+    </aside>
+
+    <!-- Main -->
+    <main>
+      <!-- Top bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">☰</button>
+          <div class="topbar-title">Saved Messages</div>
+        </div>
+        <div class="topbar-right">
+          <div id="clock" class="clock">--:--:--</div>
+          <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+            <span id="themeIcon">🌙</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <section class="content">
+        <h1 class="page-title">Saved Messages — Blink2Speak</h1>
+
+        <!-- Emergency -->
+        <h2 class="category-title">🚨 Emergency Messages</h2>
+        <div class="grid">
+          <div class="msg-card">🚨 I need help</div>
+          <div class="msg-card">📞 Call someone immediately</div>
+          <div class="msg-card">❗ I am in pain</div>
+          <div class="msg-card">⚠️ Emergency situation</div>
+          <div class="msg-card">🧑‍⚕️ Call the doctor</div>
+        </div>
+
+        <!-- Basic Needs -->
+        <h2 class="category-title">🍽️ Basic Needs</h2>
+        <div class="grid">
+          <div class="msg-card">💧 I need water</div>
+          <div class="msg-card">🍲 I need food</div>
+          <div class="msg-card">🥤 I'm thirsty</div>
+          <div class="msg-card">😪 I'm tired</div>
+          <div class="msg-card">🛏️ I want to rest</div>
+        </div>
+
+        <!-- Quick Replies -->
+        <h2 class="category-title">💬 Quick Replies</h2>
+        <div class="grid">
+          <div class="msg-card">👍 Yes</div>
+          <div class="msg-card">👎 No</div>
+          <div class="msg-card">↩️ Repeat please</div>
+          <div class="msg-card">🙏 Thank you</div>
+          <div class="msg-card">🙂 I'm okay</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Sidebar menu toggle (same pattern as your other pages) [web:1]
+    const shell = document.querySelector(".shell");
+    const menuToggle = document.getElementById("menuToggle");
+
+    menuToggle.addEventListener("click", () => {
+      shell.classList.toggle("menu-hidden");
+    });
+
+    // Live clock
+    function updateClock() {
+      const clockEl = document.getElementById("clock");
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
+      clockEl.textContent = timeStr.toLowerCase();
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Theme toggle shared via localStorage (standard approach for dark mode) [web:14]
+    const bodyEl = document.body;
+    const toggleBtn = document.getElementById("themeToggle");
+    const iconSpan = document.getElementById("themeIcon");
+
+    function applyTheme(theme) {
+      if (theme === "dark") {
+        bodyEl.classList.add("dark");
+        iconSpan.textContent = "☀️";
+      } else {
+        bodyEl.classList.remove("dark");
+        iconSpan.textContent = "🌙";
+      }
+    }
+
+    const savedTheme = localStorage.getItem("eyev_theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
+    applyTheme(initialTheme);
+
+    toggleBtn.addEventListener("click", () => {
+      const newTheme = bodyEl.classList.contains("dark") ? "light" : "dark";
+      localStorage.setItem("eyev_theme", newTheme);
+      applyTheme(newTheme);
+    });
+  
+  /* ================= TEXT TO SPEECH ================= */
+
+  function speakMessage(text) {
+    if (!text) return;
+
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-IN";     // Indian English
+    utterance.rate = 0.9;         // slightly slow for clarity
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  /* Attach speech to message cards */
+  document.querySelectorAll(".msg-card").forEach(card => {
+    card.addEventListener("click", () => {
+      // Remove emojis for cleaner speech
+      const cleanText = card.textContent.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim();
+      speakMessage(cleanText);
+    });
+  });
+
+  
+  </script>
+</body>
+</html>

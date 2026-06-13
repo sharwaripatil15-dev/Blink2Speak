@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Blink2Speak – Morse Learning</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+/* ================= THEME ================= */
+:root{
+  --bg:#f3f4f6;
+  --panel:#ffffff;
+  --panel-soft:#f9fafb;
+  --text:#020617;
+  --muted:#4b5563;
+  --border:#e5e7eb;
+  --accent:#9cff4f;
+  --accent-soft:rgba(156,255,79,.18);
+  --shadow:0 14px 30px rgba(15,23,42,.16);
+  --radius-lg:18px;
+  --radius-md:12px;
+  --radius-pill:999px;
+  --font:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+body.dark{
+  --bg:#020617;
+  --panel:#000106;
+  --panel-soft:#030712;
+  --text:#f9fafb;
+  --muted:#9ca3af;
+  --border:#111827;
+}
+
+/* ================= BASE ================= */
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+}
+
+/* ================= LAYOUT ================= */
+.shell{
+  display:grid;
+  grid-template-columns:260px 1fr;
+  min-height:100vh;
+}
+
+/* ================= SIDEBAR ================= */
+/* ================= SIDEBAR MENU (MATCHING TAB PAGE) ================= */
+
+ aside {
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-subtle);
+      padding: 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #a3e635, #4ade80);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #022c22;
+      box-shadow: 0 12px 26px rgba(132, 204, 22, 0.6);
+    }
+
+    .brand-text-main {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .brand-text-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .nav-link-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #e5f6bf;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #47630b;
+      font-size: 13px;
+    }
+
+    .nav-link span:last-child {
+      flex: 1;
+    }
+
+    .nav-link:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--text-main);
+    }
+
+    .nav-link.active {
+      background: #8ccf23;
+      color: #f9fafb;
+      font-weight: 600;
+    }
+
+    .nav-link.active .nav-link-icon {
+      background: #f9fafb;
+      color: #8ccf23;
+    }
+
+    body.dark .nav-link.active {
+      background: #8ccf23;
+      color: #022c22;
+    }
+
+/* ================= MAIN ================= */
+.main{
+  max-width:1200px;
+  margin:40px auto;
+  padding:20px 24px 40px;
+}
+
+/* ================= TOP ================= */
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:var(--panel);
+  padding:10px 16px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  margin-bottom:22px;
+}
+
+.clock{
+  padding:6px 14px;
+  border-radius:var(--radius-pill);
+  background:var(--panel-soft);
+  font-size:13px;
+}
+
+.theme-btn{
+  border:none;
+  padding:8px 14px;
+  border-radius:var(--radius-pill);
+  cursor:pointer;
+  background:var(--panel-soft);
+}
+
+/* ================= HEADER ================= */
+.header h1{
+  font-size:28px;
+  font-weight:700;
+}
+.header p{
+  margin-top:6px;
+  font-size:14px;
+  color:var(--muted);
+}
+
+/* ================= TABS ================= */
+.tabs{
+  display:flex;
+  gap:10px;
+  margin:22px 0;
+}
+.tabs button{
+  padding:8px 18px;
+  border-radius:var(--radius-pill);
+  border:1px solid var(--border);
+  background:var(--panel-soft);
+  cursor:pointer;
+}
+.tabs button.active{
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  font-weight:600;
+}
+
+/* ================= PANELS ================= */
+.panel{display:none}
+.panel.active{display:block}
+
+/* ================= MORSE GRID ================= */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:18px;
+}
+
+.morse-card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:16px;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+  transition:.25s;
+}
+.morse-card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 24px 50px rgba(132,204,22,.35);
+}
+
+.letter{font-size:26px;font-weight:700}
+.morse{
+  margin-top:6px;
+  font-size:18px;
+  letter-spacing:3px;
+  color:var(--accent);
+}
+.tap{font-size:11px;color:var(--muted);margin-top:8px}
+
+/* ================= PRACTICE ================= */
+.practice{
+  background:var(--panel-soft);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:20px;
+}
+.practice textarea{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  font-size:14px;
+  resize:none;
+  margin-top:10px;
+}
+.practice-result{
+  margin-top:14px;
+  font-weight:600;
+}
+
+/* ================= QUIZ ================= */
+.quiz{
+  background:var(--panel-soft);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:20px;
+}
+.quiz strong{
+  font-size:22px;
+  color:var(--accent);
+}
+.quiz input{
+  margin-top:10px;
+  padding:10px;
+  border-radius:12px;
+  border:1px solid var(--border);
+}
+.quiz button{
+  margin-top:14px;
+  padding:10px 22px;
+  border-radius:var(--radius-pill);
+  border:none;
+  background:linear-gradient(135deg,#b7ff6d,#84cc16);
+  font-weight:600;
+  cursor:pointer;
+}
+
+/* ================= PROGRESS ================= */
+.progress{
+  background:var(--panel-soft);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:20px;
+}
+.progress-bar{
+  height:14px;
+  border-radius:10px;
+  background:#d1d5db;
+  overflow:hidden;
+  margin-top:8px;
+}
+.progress-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(135deg,#a3e635,#4ade80);
+}
+/* ===== SIDEBAR TOGGLE (ADDED) ===== */
+.shell.hide-menu{
+  grid-template-columns:0 1fr;
+}
+.shell.hide-menu aside{
+  width:0;
+  padding:0;
+  overflow:hidden;
+  border:none;
+}
+.shell.hide-menu .main{
+  max-width:100%;
+}
+/* ===== VISIBILITY FIX (DARK MODE) ===== */
+
+/* Stronger dark background separation */
+body.dark{
+  background:#020617;
+}
+
+/* Sidebar clearly visible */
+body.dark aside{
+  background:#020617;
+  border-right:1px solid #1f2933;
+}
+
+/* Main content card contrast */
+body.dark .main{
+  background:transparent;
+}
+
+/* Top bar visibility */
+body.dark .top{
+  background:#030712;
+  border:1px solid #1f2937;
+}
+
+/* ===== MODERN BUTTONS ===== */
+.theme-btn{
+  color:#e5e7eb;
+  background:#111827;
+  border:1px solid #1f2937;
+  font-weight:600;
+}
+.theme-btn:hover{
+  background:#1f2937;
+}
+
+/* Menu button highlighted */
+#menuBtn{
+  background:linear-gradient(135deg,#b7ff6d,#84cc16);
+  color:#022c22;
+  border:none;
+  font-size:18px;
+  font-weight:700;
+}
+#menuBtn:hover{
+  filter:brightness(1.1);
+}
+
+/* Tabs contrast */
+body.dark .tabs button{
+  background:#020617;
+  color:#e5e7eb;
+  border:1px solid #1f2937;
+}
+body.dark .tabs button.active{
+  background:#84cc16;
+  color:#022c22;
+}
+
+/* Cards visibility */
+body.dark .morse-card{
+  background:#020617;
+  border:1px solid #1f2937;
+}
+
+</style>
+</head>
+
+<body class="dark">
+
+<div class="shell">
+
+<!-- SIDEBAR -->
+
+       <aside>
+      <div class="brand">
+        <div class="brand-logo">E</div>
+        <div class="brand-text">
+          <span class="brand-text-main">Blink2Speak</span>
+          <span class="brand-text-sub">EyeVoice</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="index.html" class="nav-link">
+          <div class="nav-link-icon">🏠</div>
+          <span>Home</span>
+        </a>
+        <a href="asepcaminput.html" class="nav-link">
+          <div class="nav-link-icon">👁️</div>
+          <span>Blink-2-Speak</span>
+        </a>
+         
+         <a href="pressconvert.html" class="nav-link">
+          <div class="nav-link-icon">⏱️</div>
+          <span>Tab-2-Speak</span>
+        </a>
+
+        
+        <a href="asephistory.html" class="nav-link">
+          <div class="nav-link-icon">⏱️</div>
+          <span>History</span>
+        </a>
+        <a href="asepsavedmsg.html" class="nav-link">
+          <div class="nav-link-icon">💾</div>
+          <span>Saved Messages</span></a>
+        <a class="nav-link active">
+          <div class="nav-link-icon">📘</div>
+          <span>Morse Code</span>
+        </a>
+        <a href="asepinfo.html" class="nav-link">
+          <div class="nav-link-icon">📘</div>
+          <span>User Guide</span>
+        </a>
+         <a href="asepsettingin.html" class="nav-link">
+          <div class="nav-link-icon">⚙️</div>
+          <span>Settings</span>
+        </a>
+    
+      </nav>
+    </aside>
+
+<!-- MAIN -->
+<div class="main">
+
+<div class="top">
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button class="theme-btn" onclick="toggleMenu()" id="menuBtn">☰</button>
+    <div class="clock" id="clock">--:--</div>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()">🌙 Dark</button>
+</div>
+
+
+<div class="header">
+  <h1>Morse Code Training</h1>
+  <p>Short blink = dot (•) &nbsp;|&nbsp; Long blink = dash (—)</p>
+</div>
+
+<div class="tabs">
+  <button class="active" data-tab="learn">Learn</button>
+  <button data-tab="practice">Practice</button>
+  <button data-tab="quiz">Quiz</button>
+  <button data-tab="progress">Progress</button>
+</div>
+
+<!-- LEARN -->
+<div class="panel active" id="learn">
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- PRACTICE -->
+<div class="panel" id="practice">
+  <div class="practice">
+    <h3>Decode Morse</h3>
+    <textarea rows="3" id="practiceInput"
+      placeholder=".... . .-.. .--."></textarea>
+    <div class="practice-result" id="practiceResult"></div>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div class="panel" id="quiz">
+  <div class="quiz">
+    <p>Identify this Morse:</p>
+    <strong id="quizCode">...</strong><br>
+    <input id="quizAns" placeholder="Letter / Number">
+    <br>
+    <button onclick="checkQuiz()">Submit</button>
+    <p id="quizMsg"></p>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div class="panel" id="progress">
+  <div class="progress">
+    <h3>Learning Progress</h3>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <p id="progressText"></p>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+/* CLOCK */
+setInterval(()=>clock.textContent=new Date().toLocaleTimeString("en-IN"),1000);
+
+/* THEME */
+function toggleTheme(){
+  document.body.classList.toggle("dark");
+}
+
+/* MORSE MAP (LETTERS + NUMBERS) */
+const morse={
+A:".-",B:"-...",C:"-.-.",D:"-..",E:".",F:"..-.",
+G:"--.",H:"....",I:"..",J:".---",K:"-.-",L:".-..",
+M:"--",N:"-.",O:"---",P:".--.",Q:"--.-",R:".-.",
+S:"...",T:"-",U:"..-",V:"...-",W:".--",X:"-..-",
+Y:"-.--",Z:"--..",
+0:"-----",1:".----",2:"..---",3:"...--",4:"....-",
+5:".....",6:"-....",7:"--...",8:"---..",9:"----."
+};
+
+/* LEARN GRID */
+const grid=document.getElementById("grid");
+Object.entries(morse).forEach(([l,c])=>{
+  const d=document.createElement("div");
+  d.className="morse-card";
+  d.innerHTML=`
+    <div class="letter">${l}</div>
+    <div class="morse">${c.replace(/\./g,"•").replace(/-/g,"—")}</div>
+    <div class="tap">Tap to hear</div>`;
+  d.onclick=()=>play(c);
+  grid.appendChild(d);
+});
+
+/* SOUND */
+function play(code){
+  const ctx=new AudioContext();
+  let t=ctx.currentTime;
+  code.split("").forEach(s=>{
+    const o=ctx.createOscillator();
+    o.frequency.value=650;
+    o.connect(ctx.destination);
+    o.start(t);
+    o.stop(t+(s==="."?.12:.36));
+    t+=(s==="."?.12:.36)+.1;
+  });
+}
+
+/* PRACTICE */
+practiceInput.oninput=()=>{
+  let out="";
+  practiceInput.value.trim().split(" ").forEach(c=>{
+    out+=Object.keys(morse).find(k=>morse[k]===c)||"?";
+  });
+  practiceResult.textContent="Decoded: "+out;
+};
+
+/* QUIZ */
+let keys=Object.keys(morse),score=0;
+function newQuiz(){
+  let k=keys[Math.floor(Math.random()*keys.length)];
+  quizCode.textContent=morse[k];
+  quizAns.value="";
+  quizMsg.textContent="";
+  quizAns.dataset.correct=k;
+}
+function checkQuiz(){
+  if(quizAns.value.toUpperCase()===quizAns.dataset.correct){
+    score++;
+    quizMsg.textContent="Correct ✔";
+  }else{
+    quizMsg.textContent="Wrong ✖";
+  }
+  localStorage.setItem("morseScore",score);
+  updateProgress();
+  newQuiz();
+}
+newQuiz();
+
+/* PROGRESS */
+function updateProgress(){
+  let pct=Math.min((score/keys.length)*100,100);
+  progressFill.style.width=pct+"%";
+  progressText.textContent=`Score: ${score}`;
+}
+updateProgress();
+
+/* TABS */
+document.querySelectorAll(".tabs button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    b.classList.add("active");
+    document.getElementById(b.dataset.tab).classList.add("active");
+  };
+});
+/* SIDEBAR TOGGLE */
+function toggleMenu(){
+  const shell=document.querySelector(".shell");
+  const btn=document.getElementById("menuBtn");
+  shell.classList.toggle("hide-menu");
+  btn.textContent=shell.classList.contains("hide-menu")?"✖":"☰";
+}
+
+</script>
+
+</body>
+</html>
+
